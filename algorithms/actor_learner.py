@@ -155,7 +155,7 @@ class ActorLearner(Process):
         size = len(rewards)
         y_batch = list()
 
-        for i in reversed(xrange(size)):
+        for i in reversed(range(size)):
             R = rewards[i] + self.gamma * R
             y_batch.append(R)
 
@@ -268,8 +268,8 @@ class ActorLearner(Process):
                 self.test()
 
 
-    def save_vars(self):
-        if self.is_master() and self.global_step.value()-self.last_saving_step >= CHECKPOINT_INTERVAL:
+    def save_vars(self, force = False):
+        if (self.is_master() and self.global_step.value()-self.last_saving_step >= CHECKPOINT_INTERVAL) or force:
             self.last_saving_step = self.global_step.value()
             checkpoint_utils.save_vars(self.saver, self.session, self.game, self.alg_type, self.max_local_steps, self.last_saving_step) 
     
@@ -379,7 +379,7 @@ class ActorLearner(Process):
         offset = 0
         params = np.frombuffer(shared_mem_vars.vars, 
                                   ctypes.c_float)
-        for i in xrange(len(dest_net.params)):
+        for i in range(len(dest_net.params)):
             shape = shared_mem_vars.var_shapes[i]
             size = np.prod(shape)
             feed_dict[dest_net.params_ph[i]] = \
@@ -421,4 +421,8 @@ class ActorLearner(Process):
             summaries = self.session.run(self.update_ops + [self.summary_op], feed_dict=feed_dict)[-1]
             self.supervisor.summary_computed(self.session, summaries, global_step=self.global_step.value())
     
+
+    def cleanup(self):
+        self.save_vars(True)
+        self.session.close()
 

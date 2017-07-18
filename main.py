@@ -23,8 +23,26 @@ from algorithms.trpo_actor_learner import TRPOLearner
 from algorithms.pgq_actor_learner import PGQLearner
 from algorithms.cem_actor_learner import CEMLearner
 
-logger = utils.logger.getLogger('main')
+import signal
 
+logger = utils.logger.getLogger('main')
+logging = logger
+
+def setup_kill_signal_handler(learner):
+    main_process_pid = os.getpid()
+
+    def signal_handler(signal, frame):
+        try:
+            if os.getpid() == main_process_pid or True:
+                logging.info('Signal ' + str(signal) + ' detected, cleaning up.')
+                learner.cleanup()
+                logging.info('Cleanup completed, shutting down...')
+                sys.exit(0)
+        finally:
+            pass
+
+    signal.signal(signal.SIGTERM, signal_handler)
+    signal.signal(signal.SIGINT, signal_handler)
 
 ALGORITHMS = {
     'q': (NStepQLearner, QNetwork),
@@ -127,7 +145,7 @@ def main(args):
     seed = args.seed or np.random.randint(2**32)
     np.random.seed(seed)
     tf.set_random_seed(seed)
-    for i in xrange(args.num_actor_learners):
+    for i in range(args.num_actor_learners):
         if (args.visualize == 2) and (i == args.num_actor_learners - 1):
             args.args.visualize = 1
 
@@ -143,6 +161,8 @@ def main(args):
         args.input_shape = input_shape
         actor_learners.append(Learner(args))
         actor_learners[-1].start()
+        if i == 1:
+            setup_kill_signal_handler(actor_learners[-1])
 
     try:
         for t in actor_learners:
@@ -193,7 +213,7 @@ def get_config():
     parser.add_argument('--single_life_episodes', action='store_true', help='if true, training episodes will be terminated when a life is lost (for games)', dest='single_life_episodes')
     parser.add_argument('--max_decoder_steps', default=20, type=int, help='max number of steps that sequence decoder will be allowed to take', dest='max_decoder_steps')
     parser.add_argument('--test', action='store_false', help='if not set train agents in parallel, otherwise follow optimal policy with single agent', dest='is_train')
-    parser.add_argument('--restore_checkpoint', action='store_true', help='resume training from last checkpoint', dest='restore_checkpoint')
+    parser.add_argument('--restore_checkpoint', default=True , action='store_true', help='resume training from last checkpoint', dest='restore_checkpoint')
     parser.add_argument('--use_monitor', action='store_true', help='Record video / episode stats if set', dest='use_monitor')
     parser.add_argument('--pgq_fraction', default=0.5, type=float, help='fraction by which to multiply q gradients', dest='pgq_fraction')
     parser.add_argument('--activation', default='relu', type=str, help='specify relu, softplus, or tanh activations', dest='activation')
@@ -225,7 +245,7 @@ def get_config():
     parser.add_argument('--final_epsilon', default=0.1, type=float, help='Final epsilon after annealing is complete. Only used for dqn-cts', dest='final_epsilon')
     parser.add_argument('--grads_update_steps', default=5, type=int, help='Nr. of local steps during which grads are accumulated before applying them to the shared network parameters (needed for 1-step Q/Sarsa learning)', dest='grads_update_steps')
     parser.add_argument('--q_target_update_steps', default=10000, type=int, help='Interval (in nr. of global steps) at which the parameters of the Q target network are updated (obs! 1 step = 4 video frames) (needed for Q-learning and Sarsa)', dest='q_target_update_steps') 
-    parser.add_argument('--replay_size', default=100000, type=int, help='Maximum capacity of replay memory', dest='replay_size')
+    parser.add_argument('--replay_size', default=1000, type=int, help='Maximum capacity of replay memory', dest='replay_size')
     parser.add_argument('--batch_update_size', default=32, type=int, help='Minibatch size for q-learning updates', dest='batch_update_size')
     parser.add_argument('--exploration_strategy', default='epsilon-greedy', type=str, help='boltzmann or epsilon-greedy', dest='exploration_strategy')
     parser.add_argument('--temperature', default=1.0, type=float, help='temperature to use for boltzmann exploration', dest='bolzmann_temperature')

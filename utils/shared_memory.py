@@ -49,7 +49,7 @@ class SharedVars(object):
         self.var_shapes = [
             var.get_shape().as_list()
             for var in params]
-        self.size = sum([np.prod(shape) for shape in self.var_shapes])
+        self.size = int(sum([np.prod(shape) for shape in self.var_shapes]))
         self.step = RawValue(ctypes.c_int, step)
 
         if opt_type == 'adam':

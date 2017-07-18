@@ -287,6 +287,7 @@ cdef class CTSDensityModel:
 
 
     def update(self, obs):
+        print('OBSSSSSSS:', obs.shape, obs.dtype, obs)
         obs = resize(obs, (self.height, self.width), preserve_range=True)
         obs = np.floor((obs*self.num_bins)).astype(np.int32)
         

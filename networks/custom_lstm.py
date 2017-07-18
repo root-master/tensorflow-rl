@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
 import tensorflow as tf
 
-from tensorflow.contrib.rnn import RNNCell
+try:
+  from tensorflow.contrib.rnn import RNNCell
+except:
+  #tf 1.1 or 1.2
+  from tensorflow.python.ops.rnn_cell_impl import _RNNCell as RNNCell
 
 class CustomBasicLSTMCell(RNNCell):
 	'''
@@ -33,7 +37,7 @@ class CustomBasicLSTMCell(RNNCell):
 
 	def __call__(self, inputs, state, scope=None):
 		'''Long short-term memory cell (LSTM).'''
-		print 'Inputs / Cell State:', inputs.get_shape(), state.get_shape()
+		print('Inputs / Cell State:', inputs.get_shape(), state.get_shape())
 		with tf.variable_scope(scope or type(self).__name__):  # "BasicLSTMCell"
 			# Parameters of gates are concatenated into one multiply for efficiency.
 			c, h = tf.split(axis=1, num_or_size_splits=2, value=state)

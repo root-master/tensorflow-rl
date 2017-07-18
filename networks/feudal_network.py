@@ -1,5 +1,11 @@
 import tensorflow as tf
-from tensorflow.contrib.rnn import RNNCell, BasicLSTMCell
+try:
+  from tensorflow.contrib.rnn import RNNCell, BasicLSTMCell
+except:
+  #tf 1.1 or 1.2
+  from tensorflow.python.ops.rnn_cell_impl import _RNNCell as RNNCell
+  from tensorflow.python.ops.rnn_cell_impl import BasicLSTMCell
+
 from network import Network
 
 

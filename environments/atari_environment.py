@@ -53,7 +53,7 @@ def get_actions(game_or_env):
         raise Exception('Unsupported Action Space \'{}\''.format(
             type(env.action_space).__name__))
 
-    indices = range(num_actions)
+    indices = list(range(num_actions))
     if env.spec.id in ['Pong-v0', 'Breakout-v0']:
         # Gym currently specifies 6 actions for pong and breakout when only 3 are needed
         # TODO: patch the environments instead

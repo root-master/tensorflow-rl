@@ -2,7 +2,7 @@
 import tensorflow as tf
 import numpy as np
 
-from q_network import QNetwork
+from .q_network import QNetwork
 from utils.dnd import DND
 
 

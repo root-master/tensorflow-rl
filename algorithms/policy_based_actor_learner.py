@@ -6,7 +6,7 @@ import tensorflow as tf
 from collections import deque
 from utils import checkpoint_utils
 from utils.decorators import only_on_train
-from actor_learner import ActorLearner, ONE_LIFE_GAMES
+from .actor_learner import ActorLearner, ONE_LIFE_GAMES
 from networks.policy_v_network import PolicyValueNetwork
 
 
@@ -49,7 +49,7 @@ class BaseA3CLearner(ActorLearner):
         adv_batch = list()
         td_i = 0.0
 
-        for i in reversed(xrange(size)):
+        for i in reversed(range(size)):
             td_i = rewards[i] + self.gamma*values[i+1] - values[i] + self.td_lambda*self.gamma*td_i 
             adv_batch.append(td_i)
 
