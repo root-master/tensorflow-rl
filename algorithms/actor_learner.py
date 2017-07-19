@@ -15,7 +15,7 @@ from contextlib import contextmanager
 from multiprocessing import Process
 
 
-CHECKPOINT_INTERVAL = 100000
+CHECKPOINT_INTERVAL = 10000
 ONE_LIFE_GAMES = [
     #Atari
     'Bowling-v0',

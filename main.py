@@ -138,16 +138,19 @@ def main(args):
         num_gpus = len(cuda_visible_devices.split())
 
     #spin up processes and block
-    if (args.visualize == 2): args.visualize = 0        
+    # if (args.visualize == 2): args.visualize = 0
     actor_learners = []
     task_queue = Queue()
     experience_queue = Queue()
     seed = args.seed or np.random.randint(2**32)
     np.random.seed(seed)
     tf.set_random_seed(seed)
+    visualize = args.visualize
     for i in range(args.num_actor_learners):
-        if (args.visualize == 2) and (i == args.num_actor_learners - 1):
-            args.args.visualize = 1
+        if (visualize == 2) and (i == args.num_actor_learners - 1):
+            args.visualize = 1
+        else:
+            args.visualize = 0
 
         args.actor_id = i
         args.device = '/gpu:{}'.format(i % num_gpus) if num_gpus else '/cpu:0'
