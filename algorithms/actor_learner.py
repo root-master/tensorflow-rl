@@ -70,6 +70,10 @@ class ActorLearner(Process):
         
         self.local_step = 0
         self.global_step = args.global_step
+        self.global_episode = args.global_episode
+        self.last_global_step = args.last_global_step
+        self.last_ts = args.last_ts
+
         self.local_episode = 0
         self.last_saving_step = 0
 
@@ -90,6 +94,8 @@ class ActorLearner(Process):
         self.q_update_interval = args.q_update_interval
         self.restore_checkpoint = args.restore_checkpoint
         self.random_seed = args.random_seed
+
+        self._session = None
         
         # Shared mem vars
         self.learning_vars = args.learning_vars
@@ -258,18 +264,26 @@ class ActorLearner(Process):
             allow_soft_placement=True))
 
         with self.monitored_environment(), session_context as self.session:
+            self._session = self.session
+
+            def cleanup():
+                self.save_vars(True)
+
             self.synchronize_workers()
 
             if self.is_train:
+                import atexit
+                if self.is_master():
+                    atexit.register(cleanup)
                 self.train()
             else:
                 self.test()
 
 
-    def save_vars(self):
-        if self.is_master() and self.global_step.value()-self.last_saving_step >= CHECKPOINT_INTERVAL:
+    def save_vars(self, force = False):
+        if self.is_master() and (self.global_step.value()-self.last_saving_step >= CHECKPOINT_INTERVAL or force):
             self.last_saving_step = self.global_step.value()
-            checkpoint_utils.save_vars(self.saver, self.session, self.game, self.alg_type, self.max_local_steps, self.last_saving_step) 
+            checkpoint_utils.save_vars(self.saver, self._session, self.game, self.alg_type, self.max_local_steps, self.last_saving_step)
     
     def update_shared_memory(self):
         # Initialize shared memory with tensorflow var values

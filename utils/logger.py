@@ -11,8 +11,8 @@ LOGGING = {
     'formatters': {
         'verbose': {
             'format': "[%(asctime)s] %(levelname)s " \
-                "[%(threadName)s:%(lineno)s] %(message)s",
-            'datefmt': "%Y-%m-%d %H:%M:%S"
+                "[%(processName)23s:%(lineno)s] %(message)s",
+            # 'datefmt': "%Y-%m-%d %H:%M:%S"
         },
         'simple': {
             'format': '%(levelname)s %(message)s'

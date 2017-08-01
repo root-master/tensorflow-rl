@@ -35,27 +35,28 @@ class ValueBasedLearner(ActorLearner):
                          'args': args}
         conf_target = conf_learning.copy()
         conf_target['name'] = 'local_target_{}'.format(self.actor_id)
-        
-        self.local_network = network_type(conf_learning)
-        self.target_network = network_type(conf_target)
 
-        if self.is_master():
-            var_list = self.local_network.params + self.target_network.params            
-            self.saver = tf.train.Saver(var_list=var_list, max_to_keep=3, 
-                                        keep_checkpoint_every_n_hours=2)
+        with tf.device(args.device):
+            self.local_network = network_type(conf_learning)
+            self.target_network = network_type(conf_target)
 
-        # Exploration epsilons 
-        self.initial_epsilon = 1.0
-        self.final_epsilon = self.generate_final_epsilon()
-        self.epsilon = self.final_epsilon if self.is_train else args.final_epsilon
-        self.epsilon_annealing_steps = args.epsilon_annealing_steps
-        self.exploration_strategy = args.exploration_strategy
-        self.bolzmann_temperature = args.bolzmann_temperature
+            if self.is_master():
+                var_list = self.local_network.params + self.target_network.params
+                self.saver = tf.train.Saver(var_list=var_list, max_to_keep=3,
+                                            keep_checkpoint_every_n_hours=2)
+
+            # Exploration epsilons
+            self.initial_epsilon = 1.0
+            self.final_epsilon = self.generate_final_epsilon()
+            self.epsilon = self.final_epsilon if self.is_train else args.final_epsilon
+            self.epsilon_annealing_steps = args.epsilon_annealing_steps
+            self.exploration_strategy = args.exploration_strategy
+            self.bolzmann_temperature = args.bolzmann_temperature
 
 
     def generate_final_epsilon(self):
-        values = [.01, .05, .1, .2]
-        return values[self.actor_id % 4]
+        values = [.01, .05, .1,]
+        return values[self.actor_id % len(values)]
 
 
     @only_on_train

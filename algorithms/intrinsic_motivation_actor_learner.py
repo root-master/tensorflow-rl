@@ -88,12 +88,17 @@ class DensityModelMixin(object):
             self.density_model = CTSDensityModel(**model_args)
         else:
             self.density_model = PerPixelDensityModel(**model_args)
+        try:
+            self.read_density_model()
+        except:
+            pass
 
 
     def write_density_model(self):
         logger.info('T{} Writing Pickled Density Model to File...'.format(self.actor_id))
         raw_data = cPickle.dumps(self.density_model.get_state(), protocol=2)
-        with self.barrier.counter.lock, open('/tmp/density_model.pkl', 'wb') as f:
+        dirname = 'checkpoint/' + self.game + '/' + self.alg_type
+        with self.barrier.counter.lock, open(dirname + '/density_model.pkl', 'wb') as f:
             f.write(raw_data)
 
         for i in xrange(len(self.density_model_update_flags.updated)):
@@ -101,7 +106,9 @@ class DensityModelMixin(object):
 
     def read_density_model(self):
         logger.info('T{} Synchronizing Density Model...'.format(self.actor_id))
-        with self.barrier.counter.lock, open('/tmp/density_model.pkl', 'rb') as f:
+        dirname = 'checkpoint/' + self.game + '/' + self.alg_type
+
+        with self.barrier.counter.lock, open(dirname + '/density_model.pkl', 'rb') as f:
             raw_data = f.read()
 
         self.density_model.set_state(cPickle.loads(raw_data))
@@ -240,13 +247,18 @@ class PseudoCountQLearner(ValueBasedLearner, DensityModelMixin):
         self.cts_eta = args.cts_eta
         self.cts_beta = args.cts_beta
         self.batch_size = args.batch_update_size
+
+        checkpoint_dir = 'replay/' + self.game + '/' + self.alg_type + '/' + str(self.actor_id)
+        checkpoint_utils.check_or_create_checkpoint_dir(checkpoint_dir)
+
         self.replay_memory = ReplayMemory(
             args.replay_size,
             self.local_network.get_input_shape(),
-            self.num_actions)
+            self.num_actions, dirname=checkpoint_dir)
 
         self._init_density_model(args)
-        self._double_dqn_op()
+        with tf.device(args.device):
+            self._double_dqn_op()
 
 
     def generate_final_epsilon(self):
@@ -281,25 +293,41 @@ class PseudoCountQLearner(ValueBasedLearner, DensityModelMixin):
         # Start a new game on reaching terminal state
         if episode_over:
             T = self.global_step.value()
+            last_T = self.last_global_step.value()
+            last_ts = self.last_ts.value
+            g_ep = self.global_episode.value()
             t = self.local_step
             e_prog = float(t)/self.epsilon_annealing_steps
             episode_ave_max_q = episode_ave_max_q/float(ep_t)
             s1 = "Q_MAX {0:.4f}".format(episode_ave_max_q)
             s2 = "EPS {0:.4f}".format(self.epsilon)
 
+            now_ts = time.time()
+            steps_per_sec = (T - last_T) / float(now_ts - last_ts)
+            self.last_global_step.set_value(T)
+            self.last_ts.value = now_ts
+
             self.scores.insert(0, total_episode_reward)
             if len(self.scores) > 100:
                 self.scores.pop()
 
-            logger.info('T{0} / STEP {1} / REWARD {2} / {3} / {4}'.format(
-                self.actor_id, T, total_episode_reward, s1, s2))
+            logger.info('T{:2d} / STEP {} / EP {} / EP_STEP {} / REWARD {} / RUNNING AVG: {:.0f} ± {:.0f} / BEST: {:.0f} / {} / {} / {:.2f} STEPS/s'.
+                        format(self.actor_id, T, g_ep, ep_t, total_episode_reward,
+                               np.array(self.scores).mean(),
+                               2 * np.array(self.scores).std(),
+                               max(self.scores),
+                               s1, s2,
+                               steps_per_sec
+                               )
+                        )
+            """
             logger.info('ID: {0} -- RUNNING AVG: {1:.0f} ± {2:.0f} -- BEST: {3:.0f}'.format(
                 self.actor_id,
                 np.array(self.scores).mean(),
                 2*np.array(self.scores).std(),
                 max(self.scores),
             ))
-
+    """
             self.log_summary(
                 total_episode_reward,
                 episode_ave_max_q,
@@ -404,7 +432,9 @@ class PseudoCountQLearner(ValueBasedLearner, DensityModelMixin):
         episode_over = False
         
         t0 = time.time()
+        self.last_ts.value = t0
         global_steps_at_last_record = self.global_step.value()
+        self.last_global_step.set_value(self.global_step.value())
         while (self.global_step.value() < self.max_global_steps):
             # Sync local learning net with shared mem
             rewards =      list()
@@ -495,6 +525,7 @@ class PseudoCountQLearner(ValueBasedLearner, DensityModelMixin):
                         mixed_returns[i],
                         i+1 == episode_length)
 
+            self.global_episode.increment()
             s, total_episode_reward, _, ep_t, episode_ave_max_q, episode_over = \
                 self.prepare_state(s, total_episode_reward, self.local_step, ep_t, episode_ave_max_q, episode_over, bonuses, total_augmented_reward)
 

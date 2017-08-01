@@ -61,3 +61,7 @@ target/
 
 #Ipython Notebook
 .ipynb_checkpoints
+replay
+train.sh
+train2.sh
+train3.sh

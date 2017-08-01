@@ -6,15 +6,22 @@ import numpy as np
 
 class ReplayMemory(object):
 
-	def __init__(self, maxlen, input_shape, action_size):
+	def __init__(self, maxlen, input_shape, action_size, dirname = None):
 		self.maxlen = maxlen
-		dirname = tempfile.mkdtemp()
+		if not dirname:
+			dirname = tempfile.mkdtemp()
 		#use memory maps so we won't have to worry about eating up lots of RAM
 		get_path = lambda name: os.path.join(dirname, name)
-		self.screens = np.memmap(get_path('screens'), dtype=np.float32, mode='w+', shape=tuple([self.maxlen]+input_shape))
-		self.actions = np.memmap(get_path('actions'), dtype=np.float32, mode='w+', shape=(self.maxlen, action_size))
-		self.rewards = np.memmap(get_path('rewards'), dtype=np.float32, mode='w+', shape=(self.maxlen,))
-		self.is_terminal = np.memmap(get_path('terminals'), dtype=np.bool, mode='w+', shape=(self.maxlen,))
+		try:
+			self.screens = np.memmap(get_path('screens'), dtype=np.uint8, mode='r+', shape=tuple([self.maxlen]+input_shape))
+			self.actions = np.memmap(get_path('actions'), dtype=np.float32, mode='r+', shape=(self.maxlen, action_size))
+			self.rewards = np.memmap(get_path('rewards'), dtype=np.float32, mode='r+', shape=(self.maxlen,))
+			self.is_terminal = np.memmap(get_path('terminals'), dtype=np.bool, mode='r+', shape=(self.maxlen,))
+		except:
+			self.screens = np.memmap(get_path('screens'), dtype=np.uint8, mode='w+', shape=tuple([self.maxlen] + input_shape))
+			self.actions = np.memmap(get_path('actions'), dtype=np.float32, mode='w+', shape=(self.maxlen, action_size))
+			self.rewards = np.memmap(get_path('rewards'), dtype=np.float32, mode='w+', shape=(self.maxlen,))
+			self.is_terminal = np.memmap(get_path('terminals'), dtype=np.bool, mode='w+', shape=(self.maxlen,))
 
 		self.position = 0
 		self.full = False
@@ -36,7 +43,7 @@ class ReplayMemory(object):
 			idx += len(valid_idx)
 
 		# s_i, s_f = self._get_state(batch)
-		s_i = self.screens[batch]
+		s_i = (self.screens[batch].astype(np.float32)) * (1.0 / 255.0)
 		s_f = self.screens[batch+1]
 		a = self.actions[batch]
 		r = self.rewards[batch]
@@ -48,7 +55,7 @@ class ReplayMemory(object):
 		return self.maxlen if self.full else self.position
 
 	def append(self, s_i, a, r, is_terminal):
-		self.screens[self.position] = s_i
+		self.screens[self.position] = (s_i * 255.0).astype(np.uint8)
 		self.actions[self.position] = a
 		self.rewards[self.position] = r
 		self.is_terminal[self.position] = is_terminal

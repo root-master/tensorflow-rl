@@ -1,4 +1,10 @@
 # -*- coding: utf-8 -*-
+try:
+    from gym.configuration import undo_logger_setup
+    undo_logger_setup()
+except:
+    pass
+
 import os
 import sys
 import time
@@ -8,6 +14,7 @@ import numpy as np
 import utils.logger
 import multiprocessing
 import tensorflow as tf
+from tensorflow.python.client import device_lib
 
 from networks.q_network import QNetwork
 from multiprocessing import Process, Queue
@@ -44,6 +51,10 @@ ALGORITHMS = {
     'cem-continuous': (CEMLearner, ContinuousPolicyNetwork),
     'trpo-continuous': (TRPOLearner, ContinuousPolicyNetwork),
 }
+
+def get_available_gpus():
+    local_device_protos = device_lib.list_local_devices()
+    return [x.name for x in local_device_protos if x.device_type == 'GPU']
 
 def get_num_actions(rom_path, rom_name):
     from ale_python_interface import ALEInterface
@@ -111,12 +122,18 @@ def main(args):
     tf.reset_default_graph()
     args.barrier = Barrier(args.num_actor_learners)
     args.global_step = SharedCounter(0)
+    args.last_global_step = SharedCounter(0)
+    args.last_ts = multiprocessing.RawValue('d')
+    args.global_episode = SharedCounter(0)
     args.num_actions = num_actions
 
     cuda_visible_devices = os.getenv('CUDA_VISIBLE_DEVICES')
     num_gpus = 0
-    if cuda_visible_devices:
-        num_gpus = len(cuda_visible_devices.split())
+    if cuda_visible_devices == None:
+        # num_gpus = len(get_available_gpus())
+        num_gpus = 1
+    elif cuda_visible_devices:
+        num_gpus = len(cuda_visible_devices.split(','))
 
     #spin up processes and block
     if (args.visualize == 2): args.visualize = 0        
@@ -131,7 +148,13 @@ def main(args):
             args.args.visualize = 1
 
         args.actor_id = i
-        args.device = '/gpu:{}'.format(i % num_gpus) if num_gpus else '/cpu:0'
+
+        # args.device = '/gpu:{}'.format(i % num_gpus) if num_gpus else '/cpu:0'
+
+        if num_gpus:
+            os.environ['CUDA_VISIBLE_DEVICES'] = str(i % num_gpus)
+        args.device = '/gpu:{}'.format(0) if num_gpus else '/cpu:0'
+        logger.info('actor: %d <- %s', args.actor_id, args.device)
         
         args.random_seed = seed + i
             
@@ -192,7 +215,7 @@ def get_config():
     parser.add_argument('--single_life_episodes', action='store_true', help='if true, training episodes will be terminated when a life is lost (for games)', dest='single_life_episodes')
     parser.add_argument('--max_decoder_steps', default=20, type=int, help='max number of steps that sequence decoder will be allowed to take', dest='max_decoder_steps')
     parser.add_argument('--test', action='store_false', help='if not set train agents in parallel, otherwise follow optimal policy with single agent', dest='is_train')
-    parser.add_argument('--restore_checkpoint', action='store_true', help='resume training from last checkpoint', dest='restore_checkpoint')
+    parser.add_argument('--restore_checkpoint', default=True, action='store_true', help='resume training from last checkpoint', dest='restore_checkpoint')
     parser.add_argument('--use_monitor', action='store_true', help='Record video / episode stats if set', dest='use_monitor')
     parser.add_argument('--pgq_fraction', default=0.5, type=float, help='fraction by which to multiply q gradients', dest='pgq_fraction')
     parser.add_argument('--activation', default='relu', type=str, help='specify relu, softplus, or tanh activations', dest='activation')
