@@ -7,10 +7,16 @@ import utils.logger
 import multiprocessing
 import tensorflow as tf
 import numpy as np
+import os
 
 from utils import checkpoint_utils
 from utils.decorators import only_on_train
-from utils.hogupdatemv import apply_grads_mom_rmsprop, apply_grads_adam, apply_grads_adamax
+try:
+    from utils.hogupdatemv import apply_grads_mom_rmsprop, apply_grads_adam, apply_grads_adamax
+except:
+    os.system("python2 ../setup.py build_ext --inplace")
+    from utils.hogupdatemv import apply_grads_mom_rmsprop, apply_grads_adam, apply_grads_adamax
+
 from contextlib import contextmanager
 from multiprocessing import Process
 
