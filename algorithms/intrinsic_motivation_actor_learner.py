@@ -286,7 +286,7 @@ class PseudoCountQLearner(ValueBasedLearner, DensityModelMixin):
 
     #TODO: refactor to make this cleaner
     def prepare_state(self, state, total_episode_reward, steps_at_last_reward,
-                      ep_t, episode_ave_max_q, episode_over, bonuses, total_augmented_reward):
+                      ep_t, episode_ave_max_q, episode_over, bonuses, total_augmented_reward, episode_init_max_q):
 
         reset_game = episode_over
 
@@ -300,7 +300,8 @@ class PseudoCountQLearner(ValueBasedLearner, DensityModelMixin):
             e_prog = float(t)/self.epsilon_annealing_steps
             episode_ave_max_q = episode_ave_max_q/float(ep_t)
             s1 = "Q_MAX {0:.4f}".format(episode_ave_max_q)
-            s2 = "EPS {0:.4f}".format(self.epsilon)
+            s2 = "Q_0 {0:.4f}".format(episode_init_max_q)
+            s3 = "EPS {0:.3f}".format(self.epsilon)
 
             now_ts = time.time()
             steps_per_sec = (T - last_T) / float(now_ts - last_ts)
@@ -311,12 +312,12 @@ class PseudoCountQLearner(ValueBasedLearner, DensityModelMixin):
             if len(self.scores) > 100:
                 self.scores.pop()
 
-            logger.info('T{:2d} / STEP {} / EP {} / EP_STEP {:5d} / REWARD {:5.0f} / RUNNING AVG: {:5.0f} ± {:5.0f} / BEST: {:5.0f} / {} / {} / {:.2f} STEPS/s'.
+            logger.info('T{:2d} / ST {} / EP {} / EP_ST {:5d} / RWD {:5.0f} / RUNNING AVG: {:5.0f} ± {:5.0f} / BEST: {:5.0f} / {} / {} / {} / {:.2f} STEPS/s'.
                         format(self.actor_id, T, g_ep, ep_t, total_episode_reward,
                                np.array(self.scores).mean(),
                                2 * np.array(self.scores).std(),
                                max(self.scores),
-                               s1, s2,
+                               s1, s2, s3,
                                steps_per_sec
                                )
                         )
@@ -445,6 +446,7 @@ class PseudoCountQLearner(ValueBasedLearner, DensityModelMixin):
             total_episode_reward = 0
             total_augmented_reward = 0
             episode_ave_max_q = 0
+            episode_init_max_q = 0
             ep_t = 0
 
             while not episode_over:
@@ -475,6 +477,8 @@ class PseudoCountQLearner(ValueBasedLearner, DensityModelMixin):
                 s = new_s
                 self.local_step += 1
                 episode_ave_max_q += max_q
+                if ep_t == 1:
+                    episode_init_max_q = max_q
                 
                 global_step, _ = self.global_step.increment()
 
@@ -527,5 +531,5 @@ class PseudoCountQLearner(ValueBasedLearner, DensityModelMixin):
 
             self.global_episode.increment()
             s, total_episode_reward, _, ep_t, episode_ave_max_q, episode_over = \
-                self.prepare_state(s, total_episode_reward, self.local_step, ep_t, episode_ave_max_q, episode_over, bonuses, total_augmented_reward)
+                self.prepare_state(s, total_episode_reward, self.local_step, ep_t, episode_ave_max_q, episode_over, bonuses, total_augmented_reward, episode_init_max_q)
 
