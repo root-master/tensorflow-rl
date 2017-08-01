@@ -55,7 +55,7 @@ class ValueBasedLearner(ActorLearner):
 
 
     def generate_final_epsilon(self):
-        values = [.01, .05, .1,]
+        values = [.01, .05, .1, .2]
         return values[self.actor_id % len(values)]
 
 

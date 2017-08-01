@@ -75,7 +75,7 @@ class PerPixelDensityModel(object):
 
 class DensityModelMixin(object):
     def _init_density_model(self, args):
-        self.density_model_update_steps = 5*args.q_target_update_steps
+        self.density_model_update_steps = 10*args.q_target_update_steps
         self.density_model_update_flags = args.density_model_update_flags
 
         model_args = {
@@ -311,7 +311,7 @@ class PseudoCountQLearner(ValueBasedLearner, DensityModelMixin):
             if len(self.scores) > 100:
                 self.scores.pop()
 
-            logger.info('T{:2d} / STEP {} / EP {} / EP_STEP {} / REWARD {} / RUNNING AVG: {:.0f} ± {:.0f} / BEST: {:.0f} / {} / {} / {:.2f} STEPS/s'.
+            logger.info('T{:2d} / STEP {} / EP {} / EP_STEP {:5d} / REWARD {:5d} / RUNNING AVG: {:.0f} ± {:.0f} / BEST: {:.0f} / {} / {} / {:.2f} STEPS/s'.
                         format(self.actor_id, T, g_ep, ep_t, total_episode_reward,
                                np.array(self.scores).mean(),
                                2 * np.array(self.scores).std(),
