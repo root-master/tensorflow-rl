@@ -75,7 +75,7 @@ class PerPixelDensityModel(object):
 
 class DensityModelMixin(object):
     def _init_density_model(self, args):
-        self.density_model_update_steps = 20*args.q_target_update_steps
+        self.density_model_update_steps = 5*args.q_target_update_steps
         self.density_model_update_flags = args.density_model_update_flags
 
         model_args = {
@@ -97,7 +97,7 @@ class DensityModelMixin(object):
     def write_density_model(self):
         logger.info('T{} Writing Pickled Density Model to File...'.format(self.actor_id))
         raw_data = cPickle.dumps(self.density_model.get_state(), protocol=2)
-        dirname = 'checkpoint/' + self.game + '/' + self.alg_type
+        dirname = 'checkpoints/' + self.game + '/' + self.alg_type
         with self.barrier.counter.lock, open(dirname + '/density_model.pkl', 'wb') as f:
             f.write(raw_data)
 
@@ -106,7 +106,7 @@ class DensityModelMixin(object):
 
     def read_density_model(self):
         logger.info('T{} Synchronizing Density Model...'.format(self.actor_id))
-        dirname = 'checkpoint/' + self.game + '/' + self.alg_type
+        dirname = 'checkpoints/' + self.game + '/' + self.alg_type
 
         with self.barrier.counter.lock, open(dirname + '/density_model.pkl', 'rb') as f:
             raw_data = f.read()
