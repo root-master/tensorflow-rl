@@ -14,7 +14,7 @@ from utils.decorators import only_on_train
 try:
     from utils.hogupdatemv import apply_grads_mom_rmsprop, apply_grads_adam, apply_grads_adamax
 except:
-    os.system("python2 ../setup.py build_ext --inplace")
+    os.system("python2 setup.py build_ext --inplace")
     from utils.hogupdatemv import apply_grads_mom_rmsprop, apply_grads_adam, apply_grads_adamax
 
 from contextlib import contextmanager

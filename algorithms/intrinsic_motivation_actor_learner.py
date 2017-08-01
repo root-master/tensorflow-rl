@@ -311,7 +311,7 @@ class PseudoCountQLearner(ValueBasedLearner, DensityModelMixin):
             if len(self.scores) > 100:
                 self.scores.pop()
 
-            logger.info('T{:2d} / STEP {} / EP {} / EP_STEP {:5d} / REWARD {:5.0f} / RUNNING AVG: {:.0f} ± {:.0f} / BEST: {:.0f} / {} / {} / {:.2f} STEPS/s'.
+            logger.info('T{:2d} / STEP {} / EP {} / EP_STEP {:5d} / REWARD {:5.0f} / RUNNING AVG: {:5.0f} ± {:5.0f} / BEST: {:5.0f} / {} / {} / {:.2f} STEPS/s'.
                         format(self.actor_id, T, g_ep, ep_t, total_episode_reward,
                                np.array(self.scores).mean(),
                                2 * np.array(self.scores).std(),
