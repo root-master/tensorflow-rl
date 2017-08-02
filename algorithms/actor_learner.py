@@ -100,6 +100,7 @@ class ActorLearner(Process):
         self.q_update_interval = args.q_update_interval
         self.restore_checkpoint = args.restore_checkpoint
         self.random_seed = args.random_seed
+        self.verbose = False
 
         self._session = None
         
@@ -120,13 +121,20 @@ class ActorLearner(Process):
         self.b1 = args.b1
         self.b2 = args.b2
         self.e = args.e
-        
+
+        visualize = args.visualize
+        #if visualize == 2 and self.actor_id != self.num_actor_learners - 1:
+        if visualize == 2 and self.actor_id != 1:
+            visualize = 0
+        if visualize == 2 and self.actor_id == 1:
+            self.verbose = True
+
         if args.env == 'GYM':
             from environments.atari_environment import AtariEnvironment
             self.emulator = AtariEnvironment(
                 args.game,
                 self.random_seed,
-                args.visualize,
+                visualize,
                 use_rgb=args.use_rgb,
                 frame_skip=args.frame_skip,
                 agent_history_length=args.history_length,

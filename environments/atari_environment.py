@@ -1,6 +1,7 @@
 """
 Code based on: https://github.com/coreylynch/async-rl/blob/master/atari_environment.py
 """
+from utils import imresizef
 
 """
 The MIT License (MIT)
@@ -33,7 +34,7 @@ from gym.spaces import Box, Discrete
 from skimage.transform import resize
 from skimage.color import rgb2gray
 from collections import deque
-
+from scipy.misc import imresize
 
 RESIZE_WIDTH = 84
 RESIZE_HEIGHT = 84
@@ -72,6 +73,8 @@ def get_input_shape(game):
     else:
         return [RESIZE_WIDTH, RESIZE_HEIGHT]
 
+def rgb2gray2(image):
+  return np.dot(image[...,:3], [0.299, 0.587, 0.114]) / 255.
 
 class AtariEnvironment(object):
     """
@@ -131,7 +134,9 @@ class AtariEnvironment(object):
 
         return s_t
 
-    def get_preprocessed_frame(self, observation):
+
+
+    def get_preprocessed_frame0(self, observation):
         if isinstance(self.env.observation_space, Discrete):
             expanded_obs = np.zeros(self.env.observation_space.n, dtype=np.float32)
             expanded_obs[observation] = 1
@@ -143,6 +148,21 @@ class AtariEnvironment(object):
         else:
             return observation
 
+    def get_preprocessed_frame(self, observation):
+        if isinstance(self.env.observation_space, Discrete):
+            expanded_obs = np.zeros(self.env.observation_space.n, dtype=np.float32)
+            expanded_obs[observation] = 1
+            return expanded_obs
+        elif len(observation.shape) > 1:
+            if not self.use_rgb:
+                # screen = imresize(rgb2gray2(observation), (110, 84))
+                screen = imresizef(rgb2gray2(observation), (110, 84))
+                screen = screen[18:102, :]
+                return screen
+                observation = rgb2gray(observation)
+            return resize(observation, (self.resized_width, self.resized_height))
+        else:
+            return observation
     def get_state(self, frame):
         if self.use_rgb:
             state = frame
@@ -154,6 +174,7 @@ class AtariEnvironment(object):
 
         return state
 
+    frame = None
     def next(self, action):
         """
         Excecutes an action in the gym environment.
@@ -161,7 +182,7 @@ class AtariEnvironment(object):
         Pops oldest frame, adds current frame to the state buffer.
         Returns current state.
         """
-        if self.visualize:
+        if self.visualize and self.env._elapsed_steps % 4 == 0:
             self.env.render()
         
         if isinstance(self.env.action_space, Discrete):
@@ -170,7 +191,22 @@ class AtariEnvironment(object):
 
         frame, reward, terminal, info = self.env.step(action)
 
+        if False:
+            if self.frame == None:
+                frame = self.get_preprocessed_frame(frame)
+                self.frame = frame
+            else:
+                frame = self.frame
+
+        if False:
+            for i in xrange(1000000):
+                frame = self.get_preprocessed_frame(frame)
+                # if i % 100 == 0:
+                if i & (i - 1) == 0:
+                    print('get_pre', i)
+
         frame = self.get_preprocessed_frame(frame)
+
         state = self.get_state(frame)
 
         self.state_buffer.append(frame)

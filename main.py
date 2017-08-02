@@ -30,6 +30,8 @@ from algorithms.trpo_actor_learner import TRPOLearner
 from algorithms.pgq_actor_learner import PGQLearner
 from algorithms.cem_actor_learner import CEMLearner
 
+from utils import imresizef
+
 logger = utils.logger.getLogger('main')
 
 

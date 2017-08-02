@@ -9,8 +9,8 @@ from cpython.mem cimport PyMem_Malloc, PyMem_Free
 from libc.math cimport log, exp
 from cpython cimport array
 
-from skimage.transform import resize
-
+# from skimage.transform import resize
+from utils import imresizef as resize
 
 # Parameters of the CTS model. For clarity, we take these as constants.
 cdef double PRIOR_STAY_PROB = 0.5
