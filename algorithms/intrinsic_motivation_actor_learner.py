@@ -75,7 +75,7 @@ class PerPixelDensityModel(object):
 
 class DensityModelMixin(object):
     def _init_density_model(self, args):
-        self.density_model_update_steps = 10*args.q_target_update_steps
+        self.density_model_update_steps = args.density_model_update_steps
         self.density_model_update_flags = args.density_model_update_flags
 
         model_args = {
