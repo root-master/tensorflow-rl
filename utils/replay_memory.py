@@ -13,12 +13,12 @@ class ReplayMemory(object):
 		#use memory maps so we won't have to worry about eating up lots of RAM
 		get_path = lambda name: os.path.join(dirname, name)
 		try:
-			self.screens = np.memmap(get_path('screens'), dtype=np.float32, mode='r+', shape=tuple([self.maxlen]+input_shape))
+			self.screens = np.memmap(get_path('screens'), dtype=np.float16, mode='r+', shape=tuple([self.maxlen]+input_shape))
 			self.actions = np.memmap(get_path('actions'), dtype=np.float32, mode='r+', shape=(self.maxlen, action_size))
 			self.rewards = np.memmap(get_path('rewards'), dtype=np.float32, mode='r+', shape=(self.maxlen,))
 			self.is_terminal = np.memmap(get_path('terminals'), dtype=np.bool, mode='r+', shape=(self.maxlen,))
 		except:
-			self.screens = np.memmap(get_path('screens'), dtype=np.float32, mode='w+', shape=tuple([self.maxlen] + input_shape))
+			self.screens = np.memmap(get_path('screens'), dtype=np.float16, mode='w+', shape=tuple([self.maxlen] + input_shape))
 			self.actions = np.memmap(get_path('actions'), dtype=np.float32, mode='w+', shape=(self.maxlen, action_size))
 			self.rewards = np.memmap(get_path('rewards'), dtype=np.float32, mode='w+', shape=(self.maxlen,))
 			self.is_terminal = np.memmap(get_path('terminals'), dtype=np.bool, mode='w+', shape=(self.maxlen,))
