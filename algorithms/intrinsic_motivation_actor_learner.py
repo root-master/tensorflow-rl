@@ -421,7 +421,7 @@ class PseudoCountQLearner(ValueBasedLearner, DensityModelMixin):
 
     def train(self):
         """ Main actor learner loop for n-step Q learning. """
-        logger.debug("Actor {} resuming at Step {}, {}".format(self.actor_id, 
+        logger.info("Actor {} resuming at Step {}, {}".format(self.actor_id,
             self.global_step.value(), time.ctime()))
 
         s = self.emulator.get_initial_state()
@@ -431,6 +431,7 @@ class PseudoCountQLearner(ValueBasedLearner, DensityModelMixin):
         y_batch = list()
         bonuses = deque(maxlen=1000)
         episode_over = False
+        terminate_on_stuck_for = 500
         
         t0 = time.time()
         self.last_ts.value = t0
@@ -448,6 +449,9 @@ class PseudoCountQLearner(ValueBasedLearner, DensityModelMixin):
             episode_ave_max_q = 0
             episode_init_max_q = 0
             ep_t = 0
+
+            last_x = 0
+            steps_in_last_x = 0
 
             while not episode_over:
                 self.sync_net_with_shared_memory(self.local_network, self.learning_vars)
@@ -496,7 +500,19 @@ class PseudoCountQLearner(ValueBasedLearner, DensityModelMixin):
 
                 if self.local_step % self.q_update_interval == 0:
                     self.batch_update()
-                
+
+                    ram = self.emulator.env.unwrapped.ale.getRAM()
+                    cur_x = ram[42]
+                    if cur_x == last_x:
+                        steps_in_last_x += self.q_update_interval
+                    else:
+                        last_x = cur_x
+                        steps_in_last_x = 0
+
+                    if steps_in_last_x >= terminate_on_stuck_for:
+                        episode_over = True
+                        logger.info(('Terminate at {}, because stuck in x:{} for steps:{}'.format(ep_t, last_x, steps_in_last_x)))
+
                 self.local_network.global_step = global_step
 
                 if self.is_master() and (self.local_step % 500 == 0):
