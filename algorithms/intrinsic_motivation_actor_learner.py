@@ -431,7 +431,7 @@ class PseudoCountQLearner(ValueBasedLearner, DensityModelMixin):
         y_batch = list()
         bonuses = deque(maxlen=1000)
         episode_over = False
-        terminate_on_stuck_for = 500
+        terminate_on_stuck_for = 2000
         
         t0 = time.time()
         self.last_ts.value = t0
@@ -539,7 +539,7 @@ class PseudoCountQLearner(ValueBasedLearner, DensityModelMixin):
                 states.append(new_s)
                 episode_length = len(rewards)
                 for i in range(episode_length):
-                    self.replay_memory.append(
+                    self.replay_memory.append_replay(
                         states[i],
                         actions[i],
                         mixed_returns[i],
