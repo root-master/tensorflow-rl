@@ -249,12 +249,13 @@ class PseudoCountQLearner(ValueBasedLearner, DensityModelMixin):
         self.batch_size = args.batch_update_size
 
         checkpoint_dir = 'replay/' + self.game + '/' + self.alg_type + '/' + str(self.actor_id)
-        checkpoint_utils.check_or_create_checkpoint_dir(checkpoint_dir)
+        if not args.replay_memonly:
+            checkpoint_utils.check_or_create_checkpoint_dir(checkpoint_dir)
 
         self.replay_memory = ReplayMemory(
             args.replay_size,
             self.local_network.get_input_shape(),
-            self.num_actions, dirname=checkpoint_dir)
+            self.num_actions, dirname=checkpoint_dir, memonly=args.replay_memonly)
 
         self._init_density_model(args)
         with tf.device(args.device):
