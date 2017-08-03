@@ -6,8 +6,9 @@ q_target_update_steps:   10000
 batch_update_steps:      4
 batch_update_size:       32
 final_epsilon:           0.1
-epsilon_annealing_steps: 1000000
+epsilon_annealing_steps: 500000
 replay_size:             1000000
+max_global_steps:         160000000
 arch:                    "NATURE"
 #cts-specific
 cts_bins:        8

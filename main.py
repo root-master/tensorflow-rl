@@ -30,7 +30,8 @@ from algorithms.trpo_actor_learner import TRPOLearner
 from algorithms.pgq_actor_learner import PGQLearner
 from algorithms.cem_actor_learner import CEMLearner
 
-from utils import imresizef
+import pprint
+pp = pprint.PrettyPrinter().pprint
 
 logger = utils.logger.getLogger('main')
 
@@ -67,7 +68,9 @@ def get_num_actions(rom_path, rom_name):
 
 def main(args):
     args.batch_size = None
-    logger.debug('CONFIGURATION: {}'.format(args))
+
+    # logger.info('CONFIGURATION: {}'.format(pp(args)))
+    pp(args.__dict__)
     
     """ Set up the graph, the agents, and run the agents in parallel. """
     if args.env == 'GYM':
@@ -156,7 +159,7 @@ def main(args):
         if num_gpus:
             os.environ['CUDA_VISIBLE_DEVICES'] = str(i % num_gpus)
         args.device = '/gpu:{}'.format(0) if num_gpus else '/cpu:0'
-        logger.info('actor: %d <- %s(of %s)', args.actor_id, args.device, str(i % num_gpus))
+        logger.info('actor: %d <- %s(of %s)', args.actor_id, args.device, str(i % num_gpus) if num_gpus > 0 else 0)
         
         args.random_seed = seed + i
             
@@ -261,6 +264,7 @@ def get_config():
     parser.add_argument('--max_global_steps', default=200000000, type=int, help='Max. number of training steps', dest='max_global_steps')
     parser.add_argument('--max_local_steps', default=5, type=int, help='Number of steps to gain experience from before every update for the Q learning/A3C algorithm', dest='max_local_steps')
     
+    """
     #trpo args
     parser.add_argument('--num_epochs', default=1000, type=int, help='number of epochs for which to run TRPO', dest='num_epochs')
     parser.add_argument('--episodes_per_batch', default=50, type=int, help='number of episodes to batch for TRPO updates', dest='episodes_per_batch')
@@ -269,6 +273,7 @@ def get_config():
     parser.add_argument('--cg_damping', default=0.001, type=float, help='conjugate gradient damping weight', dest='cg_damping')   
     parser.add_argument('--max_kl', default=0.01, type=float, help='max kl divergence for TRPO updates', dest='max_kl')
     parser.add_argument('--td_lambda', default=.95, type=float, help='lambda parameter for GAE', dest='td_lambda')
+    """
     
     #cts args
     parser.add_argument('--cts_bins', default=8, type=int, help='number of bins to assign pixel values', dest='cts_bins')

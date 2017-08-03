@@ -155,11 +155,9 @@ class AtariEnvironment(object):
             return expanded_obs
         elif len(observation.shape) > 1:
             if not self.use_rgb:
-                # screen = imresize(rgb2gray2(observation), (110, 84))
                 screen = imresizef(rgb2gray2(observation), (110, 84))
                 screen = screen[18:102, :]
                 return screen
-                observation = rgb2gray(observation)
             return resize(observation, (self.resized_width, self.resized_height))
         else:
             return observation
