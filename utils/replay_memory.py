@@ -62,7 +62,6 @@ class ReplayMemory(object):
 		return self.maxlen if self.full else self.position
 
 	def append_replay(self, s_i, a, r, is_terminal):
-		print("append_replay", np.min(s_i), np.max(s_i))
 		self.screens[self.position] = (s_i * 255.0).astype(np.uint8)
 		# self.screens[self.position] = s_i
 		self.actions[self.position] = a
