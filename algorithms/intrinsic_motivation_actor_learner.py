@@ -241,12 +241,16 @@ class PseudoCountQLearner(ValueBasedLearner, DensityModelMixin):
     Still in the process of verifying implementation
     '''
     def __init__(self, args):
-        self.args = args
         super(PseudoCountQLearner, self).__init__(args)
+        self.args = args
 
         self.cts_eta = args.cts_eta
         self.cts_beta = args.cts_beta
         self.batch_size = args.batch_update_size
+
+    def init_local(self):
+        super(PseudoCountQLearner, self).init_local()
+        args = self.args
 
         checkpoint_dir = 'replay/' + self.game + '/' + self.alg_type + '/' + str(self.actor_id)
         if not args.replay_memonly:

@@ -21,6 +21,8 @@ class ValueBasedLearner(ActorLearner):
     def __init__(self, args, network_type=QNetwork):
         
         super(ValueBasedLearner, self).__init__(args)
+        self.args = args
+        self.network_type = network_type
         
         # Shared mem vars
         self.target_vars = args.target_vars
@@ -28,7 +30,12 @@ class ValueBasedLearner(ActorLearner):
         self.q_target_update_steps = args.q_target_update_steps
 
         self.scores = list()
-        
+
+    def init_local(self):
+        super(ValueBasedLearner, self).init_local()
+        args = self.args
+        network_type = self.network_type
+
         conf_learning = {'name': "local_learning_{}".format(self.actor_id),
                          'input_shape': self.input_shape,
                          'num_act': self.num_actions,

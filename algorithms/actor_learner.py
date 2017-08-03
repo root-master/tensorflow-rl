@@ -122,37 +122,15 @@ class ActorLearner(Process):
         self.b2 = args.b2
         self.e = args.e
 
-        visualize = args.visualize
+        self.visualize = args.visualize
         #if visualize == 2 and self.actor_id != self.num_actor_learners - 1:
-        if visualize == 2 and self.actor_id != 1:
-            visualize = 0
-        if visualize == 2 and self.actor_id == 1:
+        if self.visualize == 2 and self.actor_id != 1 and self.num_actor_learners > 1:
+            self.visualize = 0
+        if self.visualize == 2 and (self.actor_id == 1 or self.num_actor_learners <= 1):
             self.verbose = True
 
-        if args.env == 'GYM':
-            from environments.atari_environment import AtariEnvironment
-            self.emulator = AtariEnvironment(
-                args.game,
-                self.random_seed,
-                visualize,
-                use_rgb=args.use_rgb,
-                frame_skip=args.frame_skip,
-                agent_history_length=args.history_length,
-                max_episode_steps=args.max_episode_steps,
-                single_life_episodes=args.single_life_episodes,
-            )
-        elif args.env == 'ALE':
-            from environments.emulator import Emulator
-            self.emulator = Emulator(
-                args.rom_path, 
-                args.game, 
-                args.visualize, 
-                self.actor_id,
-                self.random_seed,
-                args.single_life_episodes)
-        else:
-            raise Exception('Invalid environment `{}`'.format(args.env))
-            
+        self.emulator = None
+
         self.grads_update_steps = args.grads_update_steps
         self.max_global_steps = args.max_global_steps
         self.gamma = args.gamma
@@ -165,13 +143,42 @@ class ActorLearner(Process):
         # Barrier to synchronize all actors after initialization is done
         self.barrier = args.barrier
         
+
+        self.game = args.game
+        self.args = args
+
+    def init_local(self):
+        args = self.args
+
+        if args.env == 'GYM':
+            from environments.atari_environment import AtariEnvironment
+            self.emulator = AtariEnvironment(
+                args.game,
+                self.random_seed,
+                self.visualize,
+                use_rgb=args.use_rgb,
+                frame_skip=args.frame_skip,
+                agent_history_length=args.history_length,
+                max_episode_steps=args.max_episode_steps,
+                single_life_episodes=args.single_life_episodes,
+            )
+        elif args.env == 'ALE':
+            from environments.emulator import Emulator
+            self.emulator = Emulator(
+                args.rom_path,
+                args.game,
+                args.visualize,
+                self.actor_id,
+                self.random_seed,
+                args.single_life_episodes)
+        else:
+            raise Exception('Invalid environment `{}`'.format(args.env))
+
         #Initizlize Tensorboard summaries
         self.summary_ph, self.update_ops, self.summary_ops = self.setup_summaries()
         self.summary_op = tf.summary.merge_all()
         self.summary_writer = tf.summary.FileWriter(
-            '{}/{}'.format(self.summ_base_dir, self.actor_id), tf.get_default_graph()) 
-        self.game = args.game
-        
+            '{}/{}'.format(self.summ_base_dir, self.actor_id), tf.get_default_graph())
 
     def _build_graph(self):
         parameter_servers = ['localhost:2048']
@@ -198,6 +205,8 @@ class ActorLearner(Process):
         """
         target_params = self.session.run(self.target_network.params)
         self.assign_vars(self.local_network, target_params)
+        self.emulator.visualize = True
+        self.emulator.visualize_processed = True
 
         rewards = list()
         for episode in range(num_episodes):
@@ -263,6 +272,7 @@ class ActorLearner(Process):
 
 
     def run(self):
+        self.init_local()
         #set random seeds so we can reproduce runs
         np.random.seed(self.random_seed)
         tf.set_random_seed(self.random_seed)
