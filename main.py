@@ -156,7 +156,7 @@ def main(args):
         if num_gpus:
             os.environ['CUDA_VISIBLE_DEVICES'] = str(i % num_gpus)
         args.device = '/gpu:{}'.format(0) if num_gpus else '/cpu:0'
-        logger.info('actor: %d <- %s', args.actor_id, args.device)
+        logger.info('actor: %d <- %s(of %s)', args.actor_id, args.device, str(i % num_gpus))
         
         args.random_seed = seed + i
             

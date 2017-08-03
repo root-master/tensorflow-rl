@@ -291,7 +291,7 @@ class PseudoCountQLearner(ValueBasedLearner, DensityModelMixin):
 
     #TODO: refactor to make this cleaner
     def prepare_state(self, state, total_episode_reward, steps_at_last_reward,
-                      ep_t, episode_ave_max_q, episode_over, bonuses, total_augmented_reward, episode_init_max_q):
+                      ep_t, episode_ave_max_q, episode_over, bonuses, total_augmented_reward, episode_init_max_q, terminate_on_stuck_cnt):
 
         reset_game = episode_over
 
@@ -307,6 +307,7 @@ class PseudoCountQLearner(ValueBasedLearner, DensityModelMixin):
             s1 = "Q_MAX {0:.4f}".format(episode_ave_max_q)
             s2 = "Q_0 {0:.4f}".format(episode_init_max_q)
             s3 = "EPS {0:.3f}".format(self.epsilon)
+            s4 = "TOS {:3d}".format(terminate_on_stuck_cnt)
 
             now_ts = time.time()
             steps_per_sec = (T - last_T) / float(now_ts - last_ts)
@@ -317,12 +318,12 @@ class PseudoCountQLearner(ValueBasedLearner, DensityModelMixin):
             if len(self.scores) > 100:
                 self.scores.pop()
 
-            logger.info('T{:2d} / ST {} / EP {} / EP_ST {:5d} / RWD {:5.0f} / RUNNING AVG: {:5.0f} ± {:5.0f} / BEST: {:5.0f} / {} / {} / {} / {:.2f} STEPS/s'.
+            logger.info('T{:2d} / ST {} / EP {} / EP_ST {:5d} / RWD {:5.0f} / RUNNING AVG: {:5.0f} ± {:5.0f} / BEST: {:5.0f} / {} / {} / {} / {} / {:.2f} STEPS/s'.
                         format(self.actor_id, T, g_ep, ep_t, total_episode_reward,
                                np.array(self.scores).mean(),
                                2 * np.array(self.scores).std(),
                                max(self.scores),
-                               s1, s2, s3,
+                               s1, s2, s3, s4,
                                steps_per_sec
                                )
                         )
@@ -437,6 +438,7 @@ class PseudoCountQLearner(ValueBasedLearner, DensityModelMixin):
         bonuses = deque(maxlen=1000)
         episode_over = False
         terminate_on_stuck_for = 2000
+        terminate_on_stuck_cnt = 0
         
         t0 = time.time()
         self.last_ts.value = t0
@@ -516,7 +518,8 @@ class PseudoCountQLearner(ValueBasedLearner, DensityModelMixin):
 
                     if steps_in_last_x >= terminate_on_stuck_for:
                         episode_over = True
-                        logger.info(('Terminate at {}, because stuck in x:{} for steps:{}'.format(ep_t, last_x, steps_in_last_x)))
+                        logger.debug(('Terminate at {}, because stuck in x:{} for steps:{}'.format(ep_t, last_x, steps_in_last_x)))
+                        terminate_on_stuck_cnt += 1
 
                 self.local_network.global_step = global_step
 
@@ -552,5 +555,5 @@ class PseudoCountQLearner(ValueBasedLearner, DensityModelMixin):
 
             self.global_episode.increment()
             s, total_episode_reward, _, ep_t, episode_ave_max_q, episode_over = \
-                self.prepare_state(s, total_episode_reward, self.local_step, ep_t, episode_ave_max_q, episode_over, bonuses, total_augmented_reward, episode_init_max_q)
+                self.prepare_state(s, total_episode_reward, self.local_step, ep_t, episode_ave_max_q, episode_over, bonuses, total_augmented_reward, episode_init_max_q, terminate_on_stuck_cnt)
 
