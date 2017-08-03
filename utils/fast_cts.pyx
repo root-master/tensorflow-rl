@@ -292,7 +292,7 @@ cdef class CTSDensityModel:
         
         log_prob, log_recoding_prob = self._update(obs)
         return self.exploration_bonus(log_prob, log_recoding_prob)
-    
+
     cpdef (double, double) _update(self, int[:, :] obs):
         cdef int[:] context = np.array([0, 0, 0, 0], np.int32)
         cdef double log_prob = 0.0
@@ -314,7 +314,7 @@ cdef class CTSDensityModel:
 
     def exploration_bonus(self, log_prob, log_recoding_prob):
         recoding_prob = np.exp(log_recoding_prob)
-        prob_ratio = np.exp(log_recoding_prob - log_prob)
+        prob_ratio = np.exp(min(log_recoding_prob - log_prob, 700))
 
         pseudocount = (1 - recoding_prob) / np.maximum(prob_ratio - 1, 1e-10)
         return self.beta / np.sqrt(pseudocount + .01)

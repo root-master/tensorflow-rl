@@ -8,6 +8,8 @@ import multiprocessing
 import tensorflow as tf
 import numpy as np
 import os
+import atexit
+import signal
 
 from utils import checkpoint_utils
 from utils.decorators import only_on_train
@@ -288,26 +290,31 @@ class ActorLearner(Process):
             allow_soft_placement=True))
 
         with self.monitored_environment(), session_context as self.session:
-            self._session = self.session
 
             def cleanup():
-                self.save_vars(True)
+                self.save_vars(True, verbose=True)
 
             self.synchronize_workers()
 
             if self.is_train:
-                import atexit
                 if self.is_master():
                     atexit.register(cleanup)
-                self.train()
+                    signal.signal(signal.SIGTERM, cleanup)
+                try:
+                    self.train()
+                except:
+                    pass
+                finally:
+                    atexit._run_exitfuncs()
+
             else:
                 self.test()
 
 
-    def save_vars(self, force = False):
+    def save_vars(self, force=False, verbose=False):
         if self.is_master() and (self.global_step.value()-self.last_saving_step >= CHECKPOINT_INTERVAL or force):
             self.last_saving_step = self.global_step.value()
-            checkpoint_utils.save_vars(self.saver, self._session, self.game, self.alg_type, self.max_local_steps, self.last_saving_step)
+            checkpoint_utils.save_vars(self.saver, self.session, self.game, self.alg_type, self.max_local_steps, self.last_saving_step, verbose=verbose)
     
     def update_shared_memory(self):
         # Initialize shared memory with tensorflow var values

@@ -22,14 +22,16 @@ def restore_vars(saver, sess, game, alg_type, max_local_steps, restore_checkpoin
         global_step = int(path[path.rfind("-") + 1:])
         return global_step 
 
-def save_vars(saver, sess, game, alg_type, max_local_steps, global_step):
+def save_vars(saver, sess, game, alg_type, max_local_steps, global_step, verbose = False):
     """ Checkpoint shared net params, global score and step, and epsilons. """
 
     alg = alg_type + "{}/".format("_" + str(max_local_steps) + "_steps" if alg_type == 'q' else "") 
     checkpoint_dir = 'checkpoints/' + game + '/' + alg
     
     check_or_create_checkpoint_dir(checkpoint_dir)
-    saver.save(sess, checkpoint_dir + "model", global_step=global_step)
+    path = saver.save(sess, checkpoint_dir + "model", global_step=global_step)
+    if verbose:
+        print('Saved checkpoint `{}`'.format(path))
 
 
 def check_or_create_checkpoint_dir(checkpoint_dir):
